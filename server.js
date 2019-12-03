@@ -45,5 +45,3 @@ app.use((err, req, res, next) => {
 app.listen(port, () => {
   logger.info('Server is running on port %d', port)
 });
-
-server.listen(process.env.PORT || port)
