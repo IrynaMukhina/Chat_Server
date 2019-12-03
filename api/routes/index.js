@@ -20,6 +20,7 @@ const options = {
   },
   apis: ['./api/routes/*.js', './api/models/*.js']
 };
+
 const swaggerSpec = swaggerJSDoc(options);
 
 router.get('/', (req, res) => {
