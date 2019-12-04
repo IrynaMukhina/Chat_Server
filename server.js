@@ -4,6 +4,7 @@ const cors = require('cors');
 const pino = require('pino');
 const express = require('express');
 const expressPino = require('express-pino-logger');
+const socket = require('socket.io');
 // mongodb connection & env variables
 process.env.NODE_ENV !== 'production' && require('dotenv').config();
 require('./db');
@@ -42,6 +43,16 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(port, () => {
+const server = app.listen(port, () => {
   logger.info('Server is running on port %d', port)
+});
+
+// Socket setup
+var io = socket.listen(server);
+
+io.on('connection', (socket) =>{
+    console.log(socket.id);
+    socket.on('chat', function(data){
+      io.sockets.emit('chat', { data, socketId: socket.id})
+    })
 });
