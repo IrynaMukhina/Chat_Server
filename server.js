@@ -46,13 +46,19 @@ app.use((err, req, res, next) => {
 const server = app.listen(port, () => {
   logger.info('Server is running on port %d', port)
 });
-
+//mongoose
+const Message = require('./api/models/message.model')
 // Socket setup
 var io = socket.listen(server);
 
-io.on('connection', (socket) =>{
+io.on('connection', (socket) => {
     console.log(socket.id);
     socket.on('chat', function(data){
+      const message = new Message(data);
+
+      message.save();
+      console.log(data);
+
       io.sockets.emit('chat', { data, socketId: socket.id})
     })
 });
