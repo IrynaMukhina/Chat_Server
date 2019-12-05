@@ -5,20 +5,20 @@ const bcrypt = require('bcryptjs');
 const USER_MODEL = 'User';
 
 const userSchema = new mongoose.Schema({
-  userName: {
+  name: {
     type: String,
     required: [true, 'Please provide us your name'],
     unique: true,
     lowercase: true,
     validate: [validator.isAlphanumeric, 'Please provide a valid name']
   },
-  userPassword: {
+  password: {
     type: String,
     required: [true, 'Please provide a password'],
     minlength: 8,
     select: false
   },
-  userColour: {
+  colour: {
     type: String,
     required: [true, 'Please provide a colour'],
   }
