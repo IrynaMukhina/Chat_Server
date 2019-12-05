@@ -53,12 +53,12 @@ var io = socket.listen(server);
 
 io.on('connection', (socket) => {
     console.log(socket.id);
-    socket.on('chat', function(data){
+    socket.on('chat', (data) => {
       const message = new Message(data);
 
       message.save();
-      console.log(data);
+      console.log(message);
 
-      io.sockets.emit('chat', { data, socketId: socket.id})
+      io.sockets.emit('chat', { message, socketId: socket.id, createdAt: new Date()})
     })
 });

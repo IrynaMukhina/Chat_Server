@@ -11,24 +11,29 @@ const CHAT_MODEL = 'Chat';
  *      title: 
  *        type: string
  *        example: 'My chat'
+ *      creator:
+ *        type: object,
+ *        properties:
+ *          userName:
+ *            type: string
+ *            example: 'Andrii'
+ *          userColour:
+ *            type: string
+ *            example: '#ffffff'
  *      participants: 
  *        type: array
  *        items:
  *          type: object
  *          properties:
- *            name: 
+ *            userName: 
  *              type: string
  *              example: 'Andrii'
- *            status:
- *              type: boolean
- *              example: true
- *            bgColor:
+ *            userColour:
  *              type: string
  *              example: '#ffffff'
  *      key: 
  *        type: string
  *        example: 'secret key'
- * 
  */
 
 const chatSchema = new mongoose.Schema(

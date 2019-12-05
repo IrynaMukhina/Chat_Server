@@ -14,13 +14,10 @@ const MESSAGE_MODEL = 'Message';
  *      user:
  *        type: object
  *        properties:
- *          name: 
+ *          userName: 
  *            type: string
  *            example: 'Andrii'
- *          status:
- *            type: boolean
- *            example: true
- *          bgColor:
+ *          userColour:
  *            type: string
  *            example: '#ffffff'
  *      content: 
@@ -38,9 +35,9 @@ const messageSchema = new mongoose.Schema(
   {
     chatId: String,
     user: {
-      name: String,
-      status: Boolean,
-      bgColor: String
+      userId: String,
+      userName: String,
+      userColour: String
     },
     content: String
   },
