@@ -4,43 +4,20 @@ const bcrypt = require('bcryptjs');
 
 const USER_MODEL = 'User';
 
-// const addressSchema = new mongoose.Schema({
-//   company: String,
-//   addressOne: {
-//     type: String,
-//     required: [true, 'Please provide at least one address']
-//   },
-//   addressTwo: String,
-//   country: { type: String, required: true },
-//   city: { type: String, required: true },
-//   state: String,
-//   postalCode: { type: Number, required: true },
-//   phone: { type: Number, required: true }
-// });
-
 const userSchema = new mongoose.Schema({
-  // firstName: {
-  //   type: String,
-  //   required: [true, 'Please tell us your First Name']
-  // },
-  // lastName: {
-  //   type: String,
-  //   required: [true, 'Please tell us your Last Name']
-  // },
-  email: {
+  name: {
     type: String,
-    required: [true, 'Please provide us with email'],
+    required: [true, 'Please provide us your name'],
     unique: true,
     lowercase: true,
-    validate: [validator.isEmail, 'Please provide a valid email']
+    validate: [validator.isAlphanumeric, 'Please provide a valid name']
   },
   password: {
     type: String,
     required: [true, 'Please provide a password'],
     minlength: 8,
     select: false
-  },
-  // address: addressSchema
+  }
 });
 
 userSchema.pre('save', async function(next) {
