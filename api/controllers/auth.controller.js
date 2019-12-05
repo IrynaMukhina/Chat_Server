@@ -31,17 +31,17 @@ exports.signup = async (req, res, next) => {
 }
 
 exports.login = async (req, res, next) => {
-  const { name, password } = req.body;
+  const { userName, userPassword } = req.body;
 
   // Check if name and password exists
-  if (!name || !password) {
+  if (!userName || !userPassword) {
     return next(new AppError('Please provide name and password', 400))
   }
   // Check if user exiss && password correct
-  const user = await User.findOne({ name }).select('+password');
+  const user = await User.findOne({ userName }).select('+password');
 
   try {
-    if (!user || !(await user.correctPassword(password, user.password))) {
+    if (!user || !(await user.correctPassword(userPassword, user.password))) {
       return next(new AppError('Incorrect name or password', 401));
     }
   } catch (err){
