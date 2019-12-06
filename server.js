@@ -5,9 +5,13 @@ const pino = require('pino');
 const express = require('express');
 const expressPino = require('express-pino-logger');
 const socket = require('socket.io');
+
+const Message = require('./api/models/message.model');
+const Chat = require('./api/models/chat.model');
 // mongodb connection & env variables
 process.env.NODE_ENV !== 'production' && require('dotenv').config();
-require('./db');
+const db = require('./db');
+console.log(db.db.collection)
 
 const router = require('./api/routes');
 const app = express();
@@ -46,13 +50,29 @@ app.use((err, req, res, next) => {
 const server = app.listen(port, () => {
   logger.info('Server is running on port %d', port)
 });
-//mongoose
-const Message = require('./api/models/message.model')
+
 // Socket setup
 var io = socket.listen(server);
 
-io.on('connection', (socket) => {
+ io.on('connection',  (socket) => {
     console.log(socket.id);
+    socket.on('createChat', (data) => {
+      const chat = new Chat(data);
+
+      chat.save();
+      // console.log(chat);
+
+      io.sockets.emit('createChat', chat)
+    });
+
+    socket.on('openChat', (chatId) => {
+      Message.find({ chatId }).then(allChatMessages =>
+        io.sockets.emit('openChat', allChatMessages));
+
+      // io.sockets.emit('openChat', allChatMessages)
+    //   console.log('chatMessages', chatMessages);
+    })
+
     socket.on('chat', (data) => {
       const message = new Message(data);
 
