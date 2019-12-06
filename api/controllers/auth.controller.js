@@ -10,27 +10,32 @@ const signToken = id => {
 }
 
 exports.signup = async (req, res, next) => {
-  const newUser = await User.create(req.body);
+  const { name } = req.body;
+  const user = await User.find({ name });
 
-  const token = signToken(newUser._id)
-  
   try {
-    res.status(201).json({
-    status: 'success',
-    token,
-    user: newUser
-  })
+    if (user.length > 0) {
+      return next(new AppError('User with this name has already exist', 401));
+    }
   } catch (err){
     res.status(404).json({
       status: 'fail',
       message: err
     });
   }
+
+  const newUser = await User.create(req.body);
+  const token = signToken(newUser._id);
+
+  res.status(201).json({
+    status: 'success',
+    token,
+    user: newUser
+  })
 }
 
 exports.login = async (req, res, next) => {
   const { name, password } = req.body;
-
   // Check if name and password exists
   if (!name || !password) {
     return next(new AppError('Please provide name and password', 400))
