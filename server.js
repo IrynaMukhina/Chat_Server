@@ -65,12 +65,29 @@ var io = socket.listen(server);
       io.sockets.emit('createChat', chat)
     });
 
-    socket.on('openChat', (chatId) => {
-      Message.find({ chatId }).then(allChatMessages =>
-        io.sockets.emit('openChat', allChatMessages));
+    socket.on('openChat', (chatId, userId) => {
+      const chatParticipants = Chat.find({ chatId }).participants;
+      const isUserParticipant = chatParticipants.some(el => el.userId === userId);
+
+      if (isUserParticipant) {
+        Message.find({ chatId }).then(allChatMessages =>
+          io.sockets.emit('openChat', allChatMessages));
+      }
 
       // io.sockets.emit('openChat', allChatMessages)
-    //   console.log('chatMessages', chatMessages);
+      //   console.log('chatMessages', chatMessages);
+    })
+
+    socket.on('joinChat', (chatId, key, userId) => {
+      const chatKey = Chat.find({ chatId }).key;
+
+      if(key === chatKey) {
+        Chat.find({ chatId }).then(chat =>
+          chat.participants.push(userId));
+      }
+
+      // io.sockets.emit('openChat', allChatMessages)
+      //   console.log('chatMessages', chatMessages);
     })
 
     socket.on('chat', (data) => {
