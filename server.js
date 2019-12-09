@@ -60,35 +60,36 @@ var io = socket.listen(server);
       const chat = new Chat(data);
 
       chat.save();
-      // console.log(chat);
 
-      io.sockets.emit('createChat', chat)
+      socket.emit('createChat', chat)
     });
 
-    socket.on('openChat', (chatId, userId) => {
-      const chatParticipants = Chat.find({ chatId }).participants;
+    socket.on('joinChat', async ({ chatId, userId }) => {      
+      const chat = await Chat.find({ _id: chatId });
+      const chatParticipants = chat[0].participants;
       const isUserParticipant = chatParticipants.some(el => el.userId === userId);
 
       if (isUserParticipant) {
         Message.find({ chatId }).then(allChatMessages =>
-          io.sockets.emit('openChat', allChatMessages));
+          socket.emit('joinChat', { status: true, history: allChatMessages }));
+      } else {
+        socket.emit('joinChat', { status: false });
       }
+    });
 
-      // io.sockets.emit('openChat', allChatMessages)
-      //   console.log('chatMessages', chatMessages);
-    })
-
-    socket.on('joinChat', (chatId, key, userId) => {
-      const chatKey = Chat.find({ chatId }).key;
+    socket.on('checkKey', async ({ chatId, user, key }) => {
+      const chat = await Chat.find({ _id: chatId });
+      const chatKey = chat[0].key;
+      const allChatMessages = await Message.find({ chatId });
 
       if(key === chatKey) {
-        Chat.find({ chatId }).then(chat =>
-          chat.participants.push(userId));
-      }
+        await Chat.findOneAndUpdate({ _id: chatId }, {$push: { participants: user }});
 
-      // io.sockets.emit('openChat', allChatMessages)
-      //   console.log('chatMessages', chatMessages);
-    })
+        socket.emit('checkKey', { status: true, history: allChatMessages });
+      } else {
+        socket.emit('checkKey', { status: false });
+      }
+    });
 
     socket.on('chat', (data) => {
       const message = new Message(data);
@@ -97,5 +98,5 @@ var io = socket.listen(server);
       console.log(message);
 
       io.sockets.emit('chat', { message, socketId: socket.id, createdAt: new Date()})
-    })
+    });
 });
