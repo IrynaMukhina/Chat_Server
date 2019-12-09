@@ -4,7 +4,10 @@
   "description": "Simple REST server using express and mongoose",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "pm2 start server.js --watch && pm2 log",
+    "test": "pm2 monit",
+    "restart": "pm2 stop server && sudo pm2 start server",
+    "stop": "pm2 stop server",
     "dev": "nodemon server.js | ./node_modules/.bin/pino-colada"
   },
   "keywords": [
@@ -25,6 +28,7 @@
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^5.7.5",
     "pino": "^5.13.6",
+    "pm2": "^4.2.0",
     "socket.io": "^2.3.0",
     "swagger-jsdoc": "^3.4.0",
     "swagger-ui-express": "^4.1.2",
