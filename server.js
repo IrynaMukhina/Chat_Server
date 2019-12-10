@@ -118,7 +118,7 @@ var io = socket.listen(server);
       UpdateUserList();
     });
 
-    socket.on('chatList', async ({ type, userID  }) => {
+    socket.on('chatList', async ({ type, userId  }) => {
       let chats = await Chat.find({});
 
       switch(type) {
@@ -127,12 +127,12 @@ var io = socket.listen(server);
         }
         case 'USER_IS_PARTICIPANT': {
           chats = chats.filter(chat =>
-            chat.participants.some(user => user.userId == userID));
+            chat.participants.some(user => user.userId === userId));
           break;
         };
         case 'USER_IS_CREATOR': {
           chats = chats.filter(chat =>
-            chat.creator.userId === userID);
+            chat.creator.userId === userId);
           break;
         };
       }
