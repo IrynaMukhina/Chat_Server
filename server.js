@@ -10,8 +10,6 @@ const Message = require('./api/models/message.model');
 const Chat = require('./api/models/chat.model');
 // mongodb connection & env variables
 process.env.NODE_ENV !== 'production' && require('dotenv').config();
-const db = require('./db');
-console.log(db.db.collection)
 
 const router = require('./api/routes');
 const app = express();
@@ -52,16 +50,25 @@ const server = app.listen(port, () => {
 });
 
 // Socket setup
+const userlist = {};
+
 var io = socket.listen(server);
 
  io.on('connection',  (socket) => {
-    console.log(socket.id);
-    socket.on('createChat', (data) => {
-      const chat = new Chat(data);
+    socket.on('createChat', async (data) => {
+      const allChats = await Chat.find({});
+      const isTitleUniq = !allChats.some(el => el.title === data.title);
 
-      chat.save();
+      if (isTitleUniq) {
+        const chat = new Chat(data);
 
-      socket.emit('createChat', chat)
+        chat.save();
+
+        socket.join(`${chat._id}`);
+        socket.emit('createChat', { status: true });
+      } else {
+        socket.emit('createChat', { status: false });
+      }
     });
 
     socket.on('joinChat', async ({ chatId, userId }) => {      
@@ -70,8 +77,10 @@ var io = socket.listen(server);
       const isUserParticipant = chatParticipants.some(el => el.userId === userId);
 
       if (isUserParticipant) {
-        Message.find({ chatId }).then(allChatMessages =>
-          socket.emit('joinChat', { status: true, history: allChatMessages }));
+        const allChatMessages = await Message.find({ chatId });
+        
+        socket.join(`${chat._id}`);
+        socket.emit('joinChat', { status: true, history: allChatMessages });
       } else {
         socket.emit('joinChat', { status: false });
       }
@@ -85,18 +94,34 @@ var io = socket.listen(server);
       if(key === chatKey) {
         await Chat.findOneAndUpdate({ _id: chatId }, {$push: { participants: user }});
 
+        socket.join(`${chat._id}`);
         socket.emit('checkKey', { status: true, history: allChatMessages });
       } else {
         socket.emit('checkKey', { status: false });
       }
     });
 
-    socket.on('chat', (data) => {
-      const message = new Message(data);
+    socket.on('chat', ({ userMessage, chatId }) => {
+      const message = new Message(userMessage);
 
       message.save();
-      console.log(message);
 
-      io.sockets.emit('chat', { message, socketId: socket.id, createdAt: new Date()})
+      io.to(`${chatId}`).emit('chat', { message, socketId: socket.id, createdAt: new Date()});
     });
+
+    socket.on('online', ({ userId }) => {  
+      userlist[socket.id] = userId;
+
+      UpdateUserList();
+    });
+  
+    socket.on('disconnect', () => {
+      delete userlist[socket.id];
+    
+      UpdateUserList();
+    });
+      
+    function UpdateUserList() {
+      io.sockets.emit('updateusers', userlist);
+    }
 });
