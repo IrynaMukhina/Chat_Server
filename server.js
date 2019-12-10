@@ -10,6 +10,7 @@ const Message = require('./api/models/message.model');
 const Chat = require('./api/models/chat.model');
 // mongodb connection & env variables
 process.env.NODE_ENV !== 'production' && require('dotenv').config();
+require('./db');
 
 const router = require('./api/routes');
 const app = express();
@@ -72,9 +73,8 @@ var io = socket.listen(server);
     });
 
     socket.on('joinChat', async ({ chatId, userId }) => {      
-      const chat = await Chat.find({ _id: chatId });
-      const chatParticipants = chat[0].participants;
-      const isUserParticipant = chatParticipants.some(el => el.userId === userId);
+      const chat = await Chat.findOne({ _id: chatId });
+      const isUserParticipant = chat.participants.some(el => el.userId === userId);
 
       if (isUserParticipant) {
         const allChatMessages = await Message.find({ chatId });
@@ -87,11 +87,10 @@ var io = socket.listen(server);
     });
 
     socket.on('checkKey', async ({ chatId, user, key }) => {
-      const chat = await Chat.find({ _id: chatId });
-      const chatKey = chat[0].key;
+      const chat = await Chat.findOne({ _id: chatId });
       const allChatMessages = await Message.find({ chatId });
 
-      if(key === chatKey) {
+      if(key === chat.key) {
         await Chat.findOneAndUpdate({ _id: chatId }, {$push: { participants: user }});
 
         socket.join(`${chat._id}`);
