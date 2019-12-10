@@ -56,14 +56,14 @@ const userlist = {};
 var io = socket.listen(server);
 
  io.on('connection',  (socket) => {
-    socket.on('createChat', async (data) => {
+    socket.on('createChat', async (data) => {      
       const allChats = await Chat.find({});
       const isTitleUniq = !allChats.some(el => el.title === data.title);
 
       if (isTitleUniq) {
         const chatData = {
           ...data,
-          participants: [...data.creator]
+          participants: [data.creator]
         };
         const chat = new Chat(chatData);
 
