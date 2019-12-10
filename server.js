@@ -66,11 +66,13 @@ var io = socket.listen(server);
           participants: [data.creator]
         };
         const chat = new Chat(chatData);
+      
+        await chat.save();
 
-        chat.save();
+        const chatFromMongo = await Chat.findOne({ title: data.title });        
 
         socket.join(`${chat._id}`);
-        socket.emit('createChat', { status: true });
+        socket.emit('createChat', { status: true, createdChat: chatFromMongo });
       } else {
         socket.emit('createChat', { status: false });
       }
