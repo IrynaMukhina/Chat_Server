@@ -117,10 +117,32 @@ var io = socket.listen(server);
 
       UpdateUserList();
     });
-  
+
+    socket.on('chatList', async ({ type, userId  }) => {
+      let chats = await Chat.find({});
+
+      switch(type) {
+        case 'ALL_CHATS': {
+          break;
+        }
+        case 'USER_IS_PARTICIPANT': {
+          chats = chats.filter(chat =>
+            chat.participants.some(user => user.userId === userId));
+          break;
+        };
+        case 'USER_IS_CREATOR': {
+          chats = chats.filter(chat =>
+            chat.creator.userId === userId);
+          break;
+        };
+      }
+
+      socket.emit('chatList', chats);
+    });
+
     socket.on('disconnect', () => {
       delete userlist[socket.id];
-    
+
       UpdateUserList();
     });
       
