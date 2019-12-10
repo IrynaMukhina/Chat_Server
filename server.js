@@ -61,7 +61,11 @@ var io = socket.listen(server);
       const isTitleUniq = !allChats.some(el => el.title === data.title);
 
       if (isTitleUniq) {
-        const chat = new Chat(data);
+        const chatData = {
+          ...data,
+          participants: [...data.creator]
+        };
+        const chat = new Chat(chatData);
 
         chat.save();
 
