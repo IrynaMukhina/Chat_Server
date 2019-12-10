@@ -38,6 +38,7 @@ const CHAT_MODEL = 'Chat';
 
 const chatSchema = new mongoose.Schema(
   {
+    creator: Object,
     title: String,
     participants: Array,
     key: String

@@ -5,6 +5,9 @@ const pino = require('pino');
 const express = require('express');
 const expressPino = require('express-pino-logger');
 const socket = require('socket.io');
+
+const Message = require('./api/models/message.model');
+const Chat = require('./api/models/chat.model');
 // mongodb connection & env variables
 process.env.NODE_ENV !== 'production' && require('dotenv').config();
 require('./db');
@@ -46,19 +49,82 @@ app.use((err, req, res, next) => {
 const server = app.listen(port, () => {
   logger.info('Server is running on port %d', port)
 });
-//mongoose
-const Message = require('./api/models/message.model')
+
 // Socket setup
+const userlist = {};
+
 var io = socket.listen(server);
 
-io.on('connection', (socket) => {
-    console.log(socket.id);
-    socket.on('chat', (data) => {
-      const message = new Message(data);
+ io.on('connection',  (socket) => {
+    socket.on('createChat', async (data) => {
+      const allChats = await Chat.find({});
+      const isTitleUniq = !allChats.some(el => el.title === data.title);
+
+      if (isTitleUniq) {
+        const chatData = {
+          ...data,
+          participants: [...data.creator]
+        };
+        const chat = new Chat(chatData);
+
+        chat.save();
+
+        socket.join(`${chat._id}`);
+        socket.emit('createChat', { status: true });
+      } else {
+        socket.emit('createChat', { status: false });
+      }
+    });
+
+    socket.on('joinChat', async ({ chatId, userId }) => {      
+      const chat = await Chat.findOne({ _id: chatId });
+      const isUserParticipant = chat.participants.some(el => el.userId === userId);
+
+      if (isUserParticipant) {
+        const allChatMessages = await Message.find({ chatId });
+        
+        socket.join(`${chat._id}`);
+        socket.emit('joinChat', { status: true, history: allChatMessages });
+      } else {
+        socket.emit('joinChat', { status: false });
+      }
+    });
+
+    socket.on('checkKey', async ({ chatId, user, key }) => {
+      const chat = await Chat.findOne({ _id: chatId });
+      const allChatMessages = await Message.find({ chatId });
+
+      if(key === chat.key) {
+        await Chat.findOneAndUpdate({ _id: chatId }, {$push: { participants: user }});
+
+        socket.join(`${chat._id}`);
+        socket.emit('checkKey', { status: true, history: allChatMessages });
+      } else {
+        socket.emit('checkKey', { status: false });
+      }
+    });
+
+    socket.on('chat', ({ userMessage, chatId }) => {
+      const message = new Message(userMessage);
 
       message.save();
-      console.log(message);
 
-      io.sockets.emit('chat', { message, socketId: socket.id, createdAt: new Date()})
-    })
+      io.to(`${chatId}`).emit('chat', { message, socketId: socket.id, createdAt: new Date()});
+    });
+
+    socket.on('online', ({ userId }) => {  
+      userlist[socket.id] = userId;
+
+      UpdateUserList();
+    });
+  
+    socket.on('disconnect', () => {
+      delete userlist[socket.id];
+    
+      UpdateUserList();
+    });
+      
+    function UpdateUserList() {
+      io.sockets.emit('updateusers', userlist);
+    }
 });
