@@ -69,10 +69,10 @@ var io = socket.listen(server);
       
         await chat.save();
 
-        const chatFromMongo = await Chat.findOne({ title: data.title });        
+        const chatFromMongo = await Chat.findOne({ title: data.title });
 
         socket.join(`${chat._id}`);
-        socket.emit('createChat', { status: true, createdChat: chatFromMongo });
+        socket.emit('createChat', { status: true, createdChatId: chatFromMongo._id });
       } else {
         socket.emit('createChat', { status: false });
       }
@@ -101,6 +101,12 @@ var io = socket.listen(server);
       } else {
         socket.emit('checkKey', { status: false });
       }
+    });
+
+    socket.on('getCurrentChat', async (chatId) => {
+      const openedChat = await Chat.findOne({ chatId }); 
+
+      socket.emit('getCurrentChat', { currentChat: openedChat });
     });
 
     socket.on('getHistory', async (chatId) => {
