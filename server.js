@@ -104,7 +104,7 @@ var io = socket.listen(server);
     });
 
     socket.on('getCurrentChat', async (chatId) => {
-      const openedChat = await Chat.findOne({ chatId }); 
+      const openedChat = await Chat.findOne({ _id: chatId }); 
 
       socket.emit('getCurrentChat', { currentChat: openedChat });
     });
