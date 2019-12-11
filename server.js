@@ -106,7 +106,7 @@ var io = socket.listen(server);
     socket.on('getHistory', async (chatId) => {
       const allChatMessages = await Message.find({ chatId });
 
-      socket.emit('checkKey', { history: allChatMessages });
+      socket.emit('getHistory', { history: allChatMessages });
     });
 
     socket.on('chat', ({ userMessage, chatId }) => {
