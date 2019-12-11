@@ -90,8 +90,9 @@ var io = socket.listen(server);
       }
     });
 
-    socket.on('checkKey', async ({ chatId, user, key }) => {
+    socket.on('checkKey', async ({ chatId, userId, key }) => {
       const chat = await Chat.findOne({ _id: chatId });
+      const user = await User.findOne({ _id: userId });
 
       if(key === chat.key) {
         await Chat.findOneAndUpdate({ _id: chatId }, {$push: { participants: user }});
