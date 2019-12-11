@@ -103,7 +103,7 @@ var io = socket.listen(server);
       }
     });
 
-    socket.on('getHistory', (chatId) => {
+    socket.on('getHistory', async (chatId) => {
       const allChatMessages = await Message.find({ chatId });
 
       socket.emit('checkKey', { history: allChatMessages });
