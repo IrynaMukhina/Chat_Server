@@ -8,6 +8,7 @@ const socket = require('socket.io');
 
 const Message = require('./api/models/message.model');
 const Chat = require('./api/models/chat.model');
+const User = require('./api/models/user.model');
 // mongodb connection & env variables
 process.env.NODE_ENV !== 'production' && require('dotenv').config();
 require('./db');
