@@ -83,10 +83,8 @@ var io = socket.listen(server);
       const isUserParticipant = chat.participants.some(el => el.userId === userId);
 
       if (isUserParticipant) {
-        const allChatMessages = await Message.find({ chatId });
-        
         socket.join(`${chat._id}`);
-        socket.emit('joinChat', { status: true, history: allChatMessages });
+        socket.emit('joinChat', { status: true });
       } else {
         socket.emit('joinChat', { status: false });
       }
@@ -94,16 +92,21 @@ var io = socket.listen(server);
 
     socket.on('checkKey', async ({ chatId, user, key }) => {
       const chat = await Chat.findOne({ _id: chatId });
-      const allChatMessages = await Message.find({ chatId });
 
       if(key === chat.key) {
         await Chat.findOneAndUpdate({ _id: chatId }, {$push: { participants: user }});
 
         socket.join(`${chat._id}`);
-        socket.emit('checkKey', { status: true, history: allChatMessages });
+        socket.emit('checkKey', { status: true });
       } else {
         socket.emit('checkKey', { status: false });
       }
+    });
+
+    socket.on('getHistory', (chatId) => {
+      const allChatMessages = await Message.find({ chatId });
+
+      socket.emit('checkKey', { history: allChatMessages });
     });
 
     socket.on('chat', ({ userMessage, chatId }) => {
