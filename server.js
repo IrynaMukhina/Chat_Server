@@ -79,9 +79,9 @@ var io = socket.listen(server);
       }
     });
 
-    socket.on('joinChat', async ({ chatId, userId }) => {      
-      const chat = await Chat.findOne({ _id: chatId });
-      const isUserParticipant = chat.participants.some(el => el.userId === userId);
+    socket.on('joinChat', async ({ chatId, userId }) => {        
+      const chat = await Chat.findOne({ _id: chatId });      
+      const isUserParticipant = chat.participants.some(el => el.userId.toString() === userId);      
 
       if (isUserParticipant) {
         socket.join(`${chat._id}`);
@@ -145,7 +145,7 @@ var io = socket.listen(server);
         }
         case 'USER_IS_PARTICIPANT': {
           chats = chats.filter(chat =>
-            chat.participants.some(user => user.userId === userId));
+            chat.participants.some(user => user.userId.toString() === userId));
           break;
         };
         case 'USER_IS_CREATOR': {
