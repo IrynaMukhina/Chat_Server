@@ -141,7 +141,9 @@ var io = socket.listen(server);
 
       switch(type) {
         case 'ALL_CHATS': {
-          break;
+          io.sockets.emit('chatList', chats);
+
+          return;
         }
         case 'USER_IS_PARTICIPANT': {
           chats = chats.filter(chat =>
