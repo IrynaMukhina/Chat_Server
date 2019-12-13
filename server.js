@@ -140,6 +140,16 @@ var io = socket.listen(server);
       UpdateUserList();
     });
 
+    socket.on('disconnect', () => {
+      delete userlist[socket.id];
+
+      UpdateUserList();
+    });
+      
+    function UpdateUserList() {
+      io.sockets.emit('updateusers', userlist);
+    }
+
     socket.on('chatList', async ({ type, userId  }) => {
       let chats = await Chat.find({});
 
@@ -161,14 +171,4 @@ var io = socket.listen(server);
 
       socket.emit('chatList', chats);
     });
-
-    socket.on('disconnect', () => {
-      delete userlist[socket.id];
-
-      UpdateUserList();
-    });
-      
-    function UpdateUserList() {
-      io.sockets.emit('updateusers', userlist);
-    }
 });
