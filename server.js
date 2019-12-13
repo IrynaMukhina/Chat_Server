@@ -74,6 +74,10 @@ var io = socket.listen(server);
 
         socket.join(`${chat._id}`);
         socket.emit('createChat', { status: true, createdChatId: chatFromMongo._id });
+
+        const allChatsUpdated = await Chat.find({});
+
+        io.sockets.emit('chatList', allChatsUpdated);
       } else {
         socket.emit('createChat', { status: false });
       }
