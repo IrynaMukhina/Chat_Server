@@ -5,6 +5,7 @@ const pino = require('pino');
 const express = require('express');
 const expressPino = require('express-pino-logger');
 const socket = require('socket.io');
+const ObjectId = require('mongodb').ObjectID;
 
 const Message = require('./api/models/message.model');
 const Chat = require('./api/models/chat.model');
@@ -131,7 +132,7 @@ var io = socket.listen(server);
 
       message.save();
 
-      io.to(`${chatId}`).emit('chat', { message, socketId: socket.id, createdAt: new Date()});
+      io.to(`${chatId}`).emit('chat', { message, createdAt: new Date()});
     });
 
     socket.on('online', ({ userId }) => {  
@@ -171,4 +172,29 @@ var io = socket.listen(server);
 
       socket.emit('chatList', chats);
     });
-});
+
+    socket.on('notification', async ({ type, userId, chatId }) => {
+      const user = await User.findOne({ _id: userId });
+      const modifyUser = {
+        userId: user._id,
+        userColour: user.colour,
+        userName: user.name
+      }            
+      const eventMessage = type === 'join' ? 'joined' : type === 'leave' ? 'left' : 'entered';
+      const notificationMessage = `User ${modifyUser.userName} has ${eventMessage} a chat`;
+      const notification = new Message({
+        chatId,
+        user: modifyUser,
+        content: notificationMessage,
+        type
+      });
+
+      notification.save();
+
+      io.to(`${chatId}`).emit('chat', { notification, createdAt: new Date()})
+    });
+
+    socket.on('leave', async({ userId, chatId }) => {      
+      await Chat.findOneAndUpdate({ _id: chatId }, {$pull: { participants: { userId: ObjectId(userId) } }});
+    });
+  });
