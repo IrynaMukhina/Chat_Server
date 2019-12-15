@@ -180,7 +180,7 @@ var io = socket.listen(server);
         userColour: user.colour,
         userName: user.name
       }            
-      const eventMessage = type === 'join' ? 'joined' : type === 'leave' ? 'left' : 'entered';
+      const eventMessage = type === 'join' ? 'joined' : type === 'leaveChat' ? 'left' : 'entered';
       const notificationMessage = `User ${modifyUser.userName} has ${eventMessage} a chat`;
       const notification = new Message({
         chatId,
@@ -194,15 +194,15 @@ var io = socket.listen(server);
       io.to(`${chatId}`).emit('chat', { notification, createdAt: new Date()})
     });
 
-    socket.on('leave', async({ userId, chatId }) => {
+    socket.on('leaveChat', async({ userId, chatId }) => {
       const chat = await Chat.findOne({ _id: chatId });
       
       if (chat.creator.userId === userId) {
-        socket.emit('leave', { status: false });
+        socket.emit('leaveChat', { status: false });
       } else {
         await Chat.findOneAndUpdate({ _id: chatId }, {$pull: { participants: { userId: ObjectId(userId) } }});
 
-        socket.emit('leave', { status: true });
+        socket.emit('leaveChat', { status: true });
       }
     });
   });
