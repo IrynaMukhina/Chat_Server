@@ -194,7 +194,15 @@ var io = socket.listen(server);
       io.to(`${chatId}`).emit('chat', { notification, createdAt: new Date()})
     });
 
-    socket.on('leave', async({ userId, chatId }) => {      
-      await Chat.findOneAndUpdate({ _id: chatId }, {$pull: { participants: { userId: ObjectId(userId) } }});
+    socket.on('leave', async({ userId, chatId }) => {
+      const chat = await Chat.findOne({ _id: chatId });
+      
+      if (chat.creator.userId === userId) {
+        socket.emit('leave', { status: false });
+      } else {
+        await Chat.findOneAndUpdate({ _id: chatId }, {$pull: { participants: { userId: ObjectId(userId) } }});
+
+        socket.emit('leave', { status: true });
+      }
     });
   });
