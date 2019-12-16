@@ -1,6 +1,12 @@
 const mongoose = require('mongoose');
 
 const MESSAGE_MODEL = 'Message';
+// const NOTIFICATION = {
+//   enter: 'enter',
+//   leave: 'leave'
+// };
+// const MESSAGE_TYPES = ['message', NOTIFICATION];
+
 
 /**
  * @swagger
@@ -23,6 +29,7 @@ const MESSAGE_MODEL = 'Message';
  *      content: 
  *        type: string
  *        example: 'This is my message'
+ *      type: MESSAGES_TYPE
  *      createdAt:
  *        type: string
  *        format: date-time
@@ -39,7 +46,8 @@ const messageSchema = new mongoose.Schema(
       userName: String,
       userColour: String
     },
-    content: String
+    content: String,
+    type: String
   },
   {
     timestamps: true
