@@ -191,7 +191,7 @@ var io = socket.listen(server);
 
       notification.save();
 
-      io.to(`${chatId}`).emit('chat', { notification, createdAt: new Date()})
+      io.to(`${chatId}`).emit('chat', { massage: notification, createdAt: new Date()})
     });
 
     socket.on('leaveChat', async({ userId, chatId }) => {
