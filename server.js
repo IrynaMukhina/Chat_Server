@@ -180,7 +180,7 @@ var io = socket.listen(server);
         userColour: user.colour,
         userName: user.name
       }            
-      const eventMessage = type === 'join' ? 'joined' : type === 'leaveChat' ? 'left' : 'entered';
+      const eventMessage = type === 'join' ? 'joined' : type === 'leave' ? 'left' : 'entered';
       const notificationMessage = `User ${modifyUser.userName} has ${eventMessage} a chat`;
       const notification = new Message({
         chatId,
