@@ -182,17 +182,16 @@ var io = socket.listen(server);
       }            
       const eventMessage = type === 'join' ? 'joined' : type === 'leave' ? 'left' : 'entered';
       const notificationMessage = `User ${modifyUser.userName} has ${eventMessage} a chat`;
-      const notif = {
+      const notification = new Message({
         chatId,
         user: modifyUser,
         content: notificationMessage,
         type
-      };
-      const notification = new Message(notif);
+      });
 
       notification.save();      
 
-      io.to(`${chatId}`).emit('chat', { message: notification, createdAt: new Date()})
+      io.to(`${chatId}`).broadcast('chat', { message: notification, createdAt: new Date()})
     });
 
     socket.on('leaveChat', async({ userId, chatId }) => {
