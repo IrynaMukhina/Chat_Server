@@ -59,171 +59,171 @@ var io = socket.listen(server);
 
  io.on('connection',  (socket) => {
 // CHAT CREATION
-    socket.on('createChat', async (data) => {      
-      const allChats = await Chat.find({});
-      const isTitleUniq = !allChats.some(el => el.title === data.title);
+  socket.on('createChat', async (data) => {      
+    const allChats = await Chat.find({});
+    const isTitleUniq = !allChats.some(el => el.title === data.title);
 
-      if (isTitleUniq) {
-        const chatData = {
-          ...data,
-          participants: [data.creator]
-        };
-        const chat = new Chat(chatData);
-      
-        await chat.save();
+    if (isTitleUniq) {
+      const chatData = {
+        ...data,
+        participants: [data.creator]
+      };
+      const chat = new Chat(chatData);
+    
+      await chat.save();
 
-        const chatFromMongo = await Chat.findOne({ title: data.title });
+      const chatFromMongo = await Chat.findOne({ title: data.title });
 
-        socket.join(`${chat._id}`);
-        socket.emit('createChat', { status: true, createdChatId: chatFromMongo._id });
+      socket.join(`${chat._id}`);
+      socket.emit('createChat', { status: true, createdChatId: chatFromMongo._id });
 
-        const allChatsUpdated = await Chat.find({});
+      const allChatsUpdated = await Chat.find({});
 
-        io.sockets.emit('chatList', allChatsUpdated);
-      } else {
-        socket.emit('createChat', { status: false });
-      }
-    });
+      io.sockets.emit('chatList', allChatsUpdated);
+    } else {
+      socket.emit('createChat', { status: false });
+    }
+  });
 
 //JOIN CHAT
-    socket.on('joinChat', async ({ chatId, userId }) => {        
-      const chat = await Chat.findOne({ _id: chatId });      
-      const isUserParticipant = chat.participants.some(el => el.userId.toString() === userId);      
+  socket.on('joinChat', async ({ chatId, userId }) => {        
+    const chat = await Chat.findOne({ _id: chatId });      
+    const isUserParticipant = chat.participants.some(el => el.userId.toString() === userId);      
 
-      if (isUserParticipant) {
-        socket.join(`${chat._id}`);
-        socket.emit('joinChat', { status: true });
-      } else {
-        socket.emit('joinChat', { status: false });
-      }
-    });
+    if (isUserParticipant) {
+      socket.join(`${chat._id}`);
+      socket.emit('joinChat', { status: true });
+    } else {
+      socket.emit('joinChat', { status: false });
+    }
+  });
 
 // CHECK KEY
-    socket.on('checkKey', async ({ chatId, userId, key }) => {
-      const chat = await Chat.findOne({ _id: chatId });
-      const user = await User.findOne({ _id: userId });
-      const modifyUser = {
-        userId: user._id,
-        userColour: user.colour,
-        userName: user.name
-      }
-
-      if(key === chat.key) {
-        await Chat.findOneAndUpdate({ _id: chatId }, {$push: { participants: modifyUser }});
-
-        socket.join(`${chat._id}`);
-        socket.emit('checkKey', { status: true });
-
-        createAndSaveNotification({ type: 'join', userId, chatId })
-      } else {
-        socket.emit('checkKey', { status: false });
-      }
-    });
-
-// GET CURRENT CHAT
-    socket.on('getCurrentChat', async (chatId) => {
-      const openedChat = await Chat.findOne({ _id: chatId }); 
-
-      socket.emit('getCurrentChat', openedChat);
-    });
-
-// GET CHAT HISTORY
-    socket.on('getHistory', async (chatId) => {
-      const allChatMessages = await Message.find({ chatId });
-
-      socket.emit('getHistory', { history: allChatMessages });
-    });
-
-// CHAT FUNCTIONALITY
-    socket.on('chat', ({ userMessage, chatId }) => {
-      const message = new Message(userMessage);
-
-      message.save();
-      console.log(message, 'Message');
-      
-
-      io.to(`${chatId}`).emit('chat', { message, createdAt: new Date()});
-    });
-
-// ONLINE MODE
-    socket.on('online', ({ userId }) => {  
-      userlist[socket.id] = userId;
-
-      UpdateUserList();
-    });
-
-    socket.on('disconnect', () => {
-      delete userlist[socket.id];
-
-      UpdateUserList();
-    });
-      
-    function UpdateUserList() {
-      io.sockets.emit('updateusers', userlist);
+  socket.on('checkKey', async ({ chatId, userId, key }) => {
+    const chat = await Chat.findOne({ _id: chatId });
+    const user = await User.findOne({ _id: userId });
+    const modifyUser = {
+      userId: user._id,
+      userColour: user.colour,
+      userName: user.name
     }
 
+    if(key === chat.key) {
+      await Chat.findOneAndUpdate({ _id: chatId }, {$push: { participants: modifyUser }});
+
+      socket.join(`${chat._id}`);
+      socket.emit('checkKey', { status: true });
+
+      createAndSaveNotification({ type: 'join', userId, chatId })
+    } else {
+      socket.emit('checkKey', { status: false });
+    }
+  });
+
+// GET CURRENT CHAT
+  socket.on('getCurrentChat', async (chatId) => {
+    const openedChat = await Chat.findOne({ _id: chatId }); 
+
+    socket.emit('getCurrentChat', openedChat);
+  });
+
+// GET CHAT HISTORY
+  socket.on('getHistory', async (chatId) => {
+    const allChatMessages = await Message.find({ chatId });
+
+    socket.emit('getHistory', { history: allChatMessages });
+  });
+
+// CHAT FUNCTIONALITY
+  socket.on('chat', ({ userMessage, chatId }) => {
+    const message = new Message(userMessage);
+
+    message.save();    
+
+    io.to(`${chatId}`).emit('chat', { message, createdAt: new Date()});
+  });
+
+// ONLINE MODE
+  socket.on('online', ({ userId }) => {  
+    userlist[socket.id] = userId;
+
+    UpdateUserList();
+  });
+
+  socket.on('disconnect', () => {
+    delete userlist[socket.id];
+
+    UpdateUserList();
+  });
+    
+  function UpdateUserList() {
+    io.sockets.emit('updateusers', userlist);
+  }
+
 // DISPLAY CHATLISTS
-    socket.on('chatList', async ({ type, userId  }) => {
-      let chats = await Chat.find({});
+  socket.on('chatList', async ({ type, userId  }) => {
+    let chats = await Chat.find({});
 
-      switch(type) {
-        case 'ALL_CHATS': {
-          break;
-        }
-        case 'USER_IS_PARTICIPANT': {
-          chats = chats.filter(chat =>
-            chat.participants.some(user => user.userId.toString() === userId));
-          break;
-        };
-        case 'USER_IS_CREATOR': {
-          chats = chats.filter(chat =>
-            chat.creator.userId === userId);
-          break;
-        };
+    switch(type) {
+      case 'ALL_CHATS': {
+        break;
       }
+      case 'USER_IS_PARTICIPANT': {
+        chats = chats.filter(chat =>
+          chat.participants.some(user => user.userId.toString() === userId));
+        break;
+      };
+      case 'USER_IS_CREATOR': {
+        chats = chats.filter(chat =>
+          chat.creator.userId === userId);
+        break;
+      };
+    }
 
-      socket.emit('chatList', chats);
-    });
+    socket.emit('chatList', chats);
+  });
 
-    socket.on('leaveChat', async({ userId, chatId }) => {
-      const chat = await Chat.findOne({ _id: chatId });
-      
-      if (chat.creator.userId === userId) {
-        socket.emit('leaveChat', { status: false });
-      } else {
-        await Chat.findOneAndUpdate({ _id: chatId }, {$pull: { participants: { userId: ObjectId(userId) } }});
-
-        createAndSaveNotification({ type: 'leave', userId, chatId })
-
-        socket.emit('leaveChat', { status: true });
-      }
-    });
-
-// SETTINGS OPTIONS
-    socket.on('changeTitle', async({ chatId, newTitle }) =>  {
-      const allChats = await Chat.find({});
-      const isNewTitleExist = allChats.some(el => el.title === newTitle);
-
-      if (!isNewTitleExist) {
-        await Chat.findOneAndUpdate({ _id: chatId }, { title: newTitle });
-        socket.emit('changeTitle', { status: true });
-      } else {
-        socket.emit('changeTitle', { status: false });
-      }
-    });
-
-    socket.on('deleteParticipant', async({ chatId, userId }) =>  {
+  socket.on('leaveChat', async({ userId, chatId }) => {
+    const chat = await Chat.findOne({ _id: chatId });
+    
+    if (chat.creator.userId === userId) {
+      socket.emit('leaveChat', { status: false });
+    } else {
       await Chat.findOneAndUpdate({ _id: chatId }, {$pull: { participants: { userId: ObjectId(userId) } }});
 
-      const updatedChat = await Chat.findOne({ _id: chatId });
+      createAndSaveNotification({ type: 'leave', userId, chatId })
 
-      socket.emit('deleteParticipant', { status: true });
-
-      createAndSaveNotification({ type: 'delete', userId, chatId });
-
-      socket.emit('getCurrentChat', updatedChat);
-    });
+      socket.emit('leaveChat', { status: true });
+    }
   });
+
+// SETTINGS OPTIONS
+  socket.on('changeTitle', async({ chatId, newTitle }) =>  {
+    const allChats = await Chat.find({});
+    const isNewTitleExist = allChats.some(el => el.title === newTitle);
+
+    if (!isNewTitleExist) {
+      await Chat.findOneAndUpdate({ _id: chatId }, { title: newTitle });
+      socket.emit('changeTitle', { status: true });
+    } else {
+      socket.emit('changeTitle', { status: false });
+    }
+  });
+
+  socket.on('deleteParticipant', async({ chatId, userId }) =>  {
+    await Chat.findOneAndUpdate({ _id: chatId }, {$pull: { participants: { userId: ObjectId(userId) } }});
+
+    socket.emit('deleteParticipant', { status: true });
+
+    createAndSaveNotification({ type: 'delete', userId, chatId });
+  });
+
+  socket.on('deleteChat', async(chatId) => {
+    await Chat.findOneAndDelete({ _id: chatId });
+
+    socket.emit('deleteChat', { status: true });
+  });
+});
 
 async function createAndSaveNotification({ type, userId, chatId }) {
   const user = await User.findOne({ _id: userId });
