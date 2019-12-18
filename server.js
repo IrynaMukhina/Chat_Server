@@ -204,6 +204,7 @@ var io = socket.listen(server);
 
     if (!isNewTitleExist) {
       await Chat.findOneAndUpdate({ _id: chatId }, { title: newTitle });
+
       socket.emit('changeTitle', { status: true });
     } else {
       socket.emit('changeTitle', { status: false });
@@ -218,7 +219,7 @@ var io = socket.listen(server);
     createAndSaveNotification({ type: 'delete', userId, chatId });
   });
 
-  socket.on('deleteChat', async(chatId) => {
+  socket.on('deleteChat', async(chatId) => {    
     await Chat.findOneAndDelete({ _id: chatId });
 
     socket.emit('deleteChat', { status: true });
