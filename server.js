@@ -222,7 +222,7 @@ var io = socket.listen(server);
   socket.on('deleteChat', async(chatId) => {    
     await Chat.findOneAndDelete({ _id: chatId });
 
-    socket.emit('deleteChat', { status: true });
+    io.to(`${chatId}`).emit('deleteChat', { status: true });
   });
 });
 
@@ -260,5 +260,5 @@ async function createAndSaveNotification({ type, userId, chatId }) {
 
   notification.save();      
 
-  io.to(`${chatId}`).emit('chat', { message: notification, createdAt: new Date()})
+  socket.broadcast.to(`${chatId}`).emit('chat', { message: notification, createdAt: new Date()})
 };
