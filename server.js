@@ -260,5 +260,5 @@ async function createAndSaveNotification({ type, userId, chatId }) {
 
   notification.save();      
 
-  socket.broadcast.to(`${chatId}`).emit('chat', { message: notification, createdAt: new Date()})
+  io.to(`${chatId}`).emit('chat', { message: notification, createdAt: new Date()})
 };
