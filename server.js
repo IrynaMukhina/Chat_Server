@@ -200,12 +200,21 @@ var io = socket.listen(server);
 // SETTINGS OPTIONS
   socket.on('changeTitle', async({ chatId, newTitle }) =>  {
     const allChats = await Chat.find({});
+    const chat = await Chat.findOne({ _id: chatId });
+    const userId = chat.creator.userId;
+    const oldTitle = chat.title;
     const isNewTitleExist = allChats.some(el => el.title === newTitle);
 
     if (!isNewTitleExist) {
       await Chat.findOneAndUpdate({ _id: chatId }, { title: newTitle });
 
-      socket.emit('changeTitle', { status: true });
+      createAndSaveNotification({ type: 'changeTitle', userId, chatId, oldTitle, newTitle });
+
+      io.to(`${chatId}`).emit('changeTitle', { status: true, newTitle });
+
+      const allChatsUpdated = await Chat.find({});
+
+      io.sockets.emit('chatList', allChatsUpdated);
     } else {
       socket.emit('changeTitle', { status: false });
     }
@@ -214,7 +223,7 @@ var io = socket.listen(server);
   socket.on('deleteParticipant', async({ chatId, userId }) =>  {
     await Chat.findOneAndUpdate({ _id: chatId }, {$pull: { participants: { userId: ObjectId(userId) } }});
 
-    socket.emit('deleteParticipant', { status: true });
+    socket.emit('deleteParticipant', { status: true, deletedParticipantId: userId });
 
     createAndSaveNotification({ type: 'delete', userId, chatId });
   });
@@ -223,10 +232,14 @@ var io = socket.listen(server);
     await Chat.findOneAndDelete({ _id: chatId });
 
     io.to(`${chatId}`).emit('deleteChat', { status: true });
+
+    const allChatsUpdated = await Chat.find({});
+
+    io.sockets.emit('chatList', allChatsUpdated);
   });
 });
 
-async function createAndSaveNotification({ type, userId, chatId }) {
+async function createAndSaveNotification({ type, userId, chatId, oldTitle, newTitle }) {
   const user = await User.findOne({ _id: userId });
   const modifyUser = {
     userId: user._id,
@@ -244,13 +257,24 @@ async function createAndSaveNotification({ type, userId, chatId }) {
     case 'delete':
       eventMessage = 'deleted';
       break;
+    case 'changeTitle':
+      eventMessage = 'changed';
+      break;
     default:
       eventMessage = '';
   }
   let notificationMessage = `User ${modifyUser.userName} has ${eventMessage} a chat`;
+
   if (type === 'delete') {
-    notificationMessage = `User ${modifyUser.userName} was ${eventMessage} from chat by chat creator`;
+    notificationMessage = `User ${modifyUser.userName} was ${eventMessage} 
+      from chat by ${modifyUser.userName}`;
   }
+
+  if (type === 'changeTitle') {
+    notificationMessage = `Chat title was ${eventMessage} from "${oldTitle}" to "${newTitle}" 
+      by user ${modifyUser.userName}`;
+  }
+
   const notification = new Message({
     chatId,
     user: modifyUser,
