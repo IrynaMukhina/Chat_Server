@@ -220,7 +220,7 @@ var io = socket.listen(server);
   });
 
   socket.on('deleteChat', async(chatId) => {    
-    // await Chat.findOneAndDelete({ _id: chatId });
+    await Chat.findOneAndDelete({ _id: chatId });
 
     socket.emit('deleteChat', { status: true });
   });
