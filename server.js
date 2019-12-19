@@ -223,7 +223,7 @@ var io = socket.listen(server);
   socket.on('deleteParticipant', async({ chatId, userId }) =>  {
     await Chat.findOneAndUpdate({ _id: chatId }, {$pull: { participants: { userId: ObjectId(userId) } }});
 
-    socket.emit('deleteParticipant', { status: true, deletedParticipantId: userId });
+    io.to(`${chatId}`).emit('deleteParticipant', { status: true, deletedParticipantId: userId });
 
     createAndSaveNotification({ type: 'delete', userId, chatId });
   });
