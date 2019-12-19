@@ -26,7 +26,7 @@ const expressLogger = expressPino({ logger });
 app.use(cors())
   .use(express.json())
   .use(express.static(staticDir))
-  .use(express.urlencoded({ extended:false }))  
+  .use(express.urlencoded({ extended:false }))
   .use(expressLogger)
   .use(router);
 
@@ -53,12 +53,34 @@ const server = app.listen(port, () => {
 });
 
 // Socket setup
-const userlist = {};
 
 var io = socket.listen(server);
 
- io.on('connection',  (socket) => {
-    socket.on('createChat', async (data) => {      
+// variables
+const userStatuslist = {};
+const socketUserList = {};
+const allChatsParticipants = {};
+const UserStatus = Object.freeze({
+  online: 'ONLINE',
+  offline: 'OFFLINE',
+  inChat: 'IN_CHAT'
+});
+
+// Chat.find({}).then(chats => {
+//   chats.forEach(chat => {
+//     allChatsParticipants[chat._id] = chat.participants
+//       .map(user => user.userId);
+//     });
+//     console.log('Initial allChatsParticipants', allChatsParticipants);
+// });
+
+User.find({}).then(users => {
+  users.forEach(user => setUserStatus(user.id, UserStatus.offline, null));
+  console.log('Initial users');
+});
+
+ io.on('connection',  async (socket) => {
+    socket.on('createChat', async (data) => {
       const allChats = await Chat.find({});
       const isTitleUniq = !allChats.some(el => el.title === data.title);
 
@@ -68,7 +90,6 @@ var io = socket.listen(server);
           participants: [data.creator]
         };
         const chat = new Chat(chatData);
-      
         await chat.save();
 
         const chatFromMongo = await Chat.findOne({ title: data.title });
@@ -84,13 +105,16 @@ var io = socket.listen(server);
       }
     });
 
-    socket.on('joinChat', async ({ chatId, userId }) => {        
-      const chat = await Chat.findOne({ _id: chatId });      
-      const isUserParticipant = chat.participants.some(el => el.userId.toString() === userId);      
-
+    socket.on('joinChat', async ({ chatId, userId }) => {
+      const chat = await Chat.findOne({ _id: chatId });
+      const isUserParticipant = chat.participants.some(el => el.userId.toString() === userId);
+      console.log('join')
       if (isUserParticipant) {
         socket.join(`${chat._id}`);
+        console.log('joined!!!');
+        
         socket.emit('joinChat', { status: true });
+        setUserStatus(userId, UserStatus.inChat, chatId);
       } else {
         socket.emit('joinChat', { status: false });
       }
@@ -116,7 +140,7 @@ var io = socket.listen(server);
     });
 
     socket.on('getCurrentChat', async (chatId) => {
-      const openedChat = await Chat.findOne({ _id: chatId }); 
+      const openedChat = await Chat.findOne({ _id: chatId });
 
       socket.emit('getCurrentChat', openedChat);
     });
@@ -135,21 +159,40 @@ var io = socket.listen(server);
       io.to(`${chatId}`).emit('chat', { message, createdAt: new Date()});
     });
 
-    socket.on('online', ({ userId }) => {  
-      userlist[socket.id] = userId;
+    socket.on('userStatus', ({ userId, status, saveChatId }) => {
+      let chatId = null;
+      switch (status) {
+        case UserStatus.online: {
+          socketUserList[socket.id] = userId;
+          console.log('hi');
+          break;
+        }
+        case UserStatus.offline: {
+          delete socketUserList[socket.id];
+          chatId = userStatuslist[userId].chatId;
+          break;
+        }
+        // case UserStatus.inChat: {
+        //   socketUserList[socket.id] = userId;
+        //   chatId = userStatuslist[userId].chatId;
+        // }
+      }
+      if (saveChatId || status === UserStatus.offline) {
+        chatId = userStatuslist[userId].chatId;
+      }
 
-      UpdateUserList();
+      setUserStatus(userId, status, chatId);
     });
 
     socket.on('disconnect', () => {
-      delete userlist[socket.id];
+      const userId = socketUserList[socket.id];
 
-      UpdateUserList();
+      if (userId) {
+        delete socketUserList[socket.id];
+        chatId = userStatuslist[userId].chatId;
+        setUserStatus(userId, UserStatus.offline, chatId);
+      }
     });
-      
-    function UpdateUserList() {
-      io.sockets.emit('updateusers', userlist);
-    }
 
     socket.on('chatList', async ({ type, userId  }) => {
       let chats = await Chat.find({});
@@ -179,7 +222,7 @@ var io = socket.listen(server);
         userId: user._id,
         userColour: user.colour,
         userName: user.name
-      }            
+      }
       const eventMessage = type === 'join' ? 'joined' : type === 'leaveChat' ? 'left' : 'entered';
       const notificationMessage = `User ${modifyUser.userName} has ${eventMessage} a chat`;
       const notification = new Message({
@@ -196,13 +239,38 @@ var io = socket.listen(server);
 
     socket.on('leaveChat', async({ userId, chatId }) => {
       const chat = await Chat.findOne({ _id: chatId });
-      
+
       if (chat.creator.userId === userId) {
         socket.emit('leaveChat', { status: false });
       } else {
         await Chat.findOneAndUpdate({ _id: chatId }, {$pull: { participants: { userId: ObjectId(userId) } }});
 
         socket.emit('leaveChat', { status: true });
+        setUserStatus(userId, UserStatus.online);
       }
     });
+
+    socket.on('getActiveChat', ({ userId }) => {
+      const userStatus = userStatuslist[userId]
+      if (userStatus) {
+        const chatId = userStatuslist[userId].chatId;
+        socket.emit('getActiveChat', chatId);
+      } else {
+        userStatuslist[userId] = { status: UserStatus.online, chatId: null };
+      }
+    });
+
+    // socket.on('getUserStatus', ({ userId }) => {
+    //   console.log('userId', userId);
+    //   const { status, chatId }  = userStatuslist[userId];
+    //   socket.emit('getUserStatus', { status });
+    //   if(chatId) {
+    //     socket.emit('activeChat', { chatId });
+    //   }
+    // });
   });
+
+  function setUserStatus(userId, status, chatId = null) {
+    userStatuslist[userId] = { status, chatId };
+    console.log('User status updated: ', status, userId);
+  }
