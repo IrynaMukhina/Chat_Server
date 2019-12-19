@@ -267,7 +267,7 @@ async function createAndSaveNotification({ type, userId, chatId, oldTitle, newTi
 
   if (type === 'delete') {
     notificationMessage = `User ${modifyUser.userName} was ${eventMessage} 
-      from chat by ${modifyUser.userName}`;
+      from chat by chat creator`;
   }
 
   if (type === 'changeTitle') {
