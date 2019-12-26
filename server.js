@@ -138,10 +138,11 @@ var io = socket.listen(server);
 // CHAT FUNCTIONALITY
   socket.on('chat', ({ userMessage, chatId }) => {
     const message = new Message(userMessage);
+    const newMessage = {...userMessage, createdAt: new Date()};
 
-    message.save();    
+    message.save();
 
-    io.to(`${chatId}`).emit('chat', { message, createdAt: new Date()});
+    io.to(`${chatId}`).emit('chat', { message: newMessage});
   });
 
 // ONLINE MODE
