@@ -53,7 +53,8 @@ const server = app.listen(port, () => {
 });
 
 // Socket setup
-const userlist = {};
+const userStatuslist = {};
+const socketUserList = {};
 
 var io = socket.listen(server);
 
@@ -144,21 +145,47 @@ var io = socket.listen(server);
   });
 
 // ONLINE MODE
-  socket.on('online', ({ userId }) => {  
-    userlist[socket.id] = userId;
 
-    UpdateUserList();
-  });
-
-  socket.on('disconnect', () => {
-    delete userlist[socket.id];
-
-    UpdateUserList();
-  });
-    
-  function UpdateUserList() {
-    io.sockets.emit('updateusers', userlist);
+function userOnline(socketId, userId) {
+    socketUserList[socketId] = userId;
+    userStatuslist[userId] = true;
   }
+function userOffline(socketId) {
+  userId = socketUserList[socketId];
+  if (userId) {
+    delete userStatuslist[userId];
+  }
+}
+
+socket.on('online', ({ userId }) => {
+  userOnline(socket.id, userId);
+});
+
+socket.on('offline', () => {
+  userOffline(socket.id);
+});
+
+socket.on('disconnect', () => {
+  userOffline(socket.id);
+});
+
+socket.on('chatUserList', async ({ chatId }) => {
+  const chat = await Chat.findOne({ _id: chatId });
+  const participants = chat.participants;
+  const participantsWithStatus = participants.map(
+    participant => {
+      const isOnline = !!userStatuslist[participant.userId];
+      return {
+        userId: participant.userId,
+        userName: participant.userName,
+        userColour: participant.userColour,
+        isOnline: isOnline
+      };
+    }
+  );
+
+  socket.emit('chatUserList', participantsWithStatus);
+});
 
 // DISPLAY CHATLISTS
   socket.on('chatList', async ({ type, userId  }) => {
