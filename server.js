@@ -114,8 +114,7 @@ var io = socket.listen(server);
       socket.join(`${chat._id}`);
       socket.emit('checkKey', { status: true });
 
-      createAndSaveNotification({ type: 'join', userId, chatId });
-      socket.to(`${chatId}`).emit('chat', { message: notification, createdAt: new Date()})
+      createAndSaveNotification({ type: 'join', userId, chatId }, socket)
     } else {
       socket.emit('checkKey', { status: false });
     }
@@ -192,7 +191,7 @@ var io = socket.listen(server);
     } else {
       await Chat.findOneAndUpdate({ _id: chatId }, {$pull: { participants: { userId: ObjectId(userId) } }});
 
-      createAndSaveNotification({ type: 'leave', userId, chatId })
+      createAndSaveNotification({ type: 'leave', userId, chatId }, socket)
 
       socket.emit('leaveChat', { status: true });
     }
@@ -209,7 +208,7 @@ var io = socket.listen(server);
     if (!isNewTitleExist) {
       await Chat.findOneAndUpdate({ _id: chatId }, { title: newTitle });
 
-      createAndSaveNotification({ type: 'changeTitle', userId, chatId, oldTitle, newTitle });
+      createAndSaveNotification({ type: 'changeTitle', userId, chatId, oldTitle, newTitle }, socket);
 
       io.to(`${chatId}`).emit('changeTitle', { status: true, newTitle });
 
@@ -226,7 +225,7 @@ var io = socket.listen(server);
 
     socket.emit('deleteParticipant', { status: true, deletedParticipantId: userId });
 
-    createAndSaveNotification({ type: 'delete', userId, chatId });
+    createAndSaveNotification({ type: 'delete', userId, chatId }, socket);
   });
 
   socket.on('deleteChat', async(chatId) => {    
@@ -240,7 +239,7 @@ var io = socket.listen(server);
   });
 });
 
-async function createAndSaveNotification({ type, userId, chatId, oldTitle, newTitle }) {
+async function createAndSaveNotification({ type, userId, chatId, oldTitle, newTitle }, socket) {
   const user = await User.findOne({ _id: userId });
   const modifyUser = {
     userId: user._id,
@@ -285,4 +284,5 @@ async function createAndSaveNotification({ type, userId, chatId, oldTitle, newTi
 
   notification.save();      
 
+  socket.to(`${chatId}`).emit('chat', { message: notification, createdAt: new Date()})
 };
