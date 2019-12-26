@@ -53,8 +53,7 @@ const server = app.listen(port, () => {
 });
 
 // Socket setup
-const userStatuslist = {};
-const socketUserList = {};
+const userlist = {};
 
 var io = socket.listen(server);
 
@@ -109,13 +108,14 @@ var io = socket.listen(server);
       userName: user.name
     }
 
-    if(key === chat.key) {
+    if(key === chat.key) {      
       await Chat.findOneAndUpdate({ _id: chatId }, {$push: { participants: modifyUser }});
 
       socket.join(`${chat._id}`);
       socket.emit('checkKey', { status: true });
 
-      createAndSaveNotification({ type: 'join', userId, chatId })
+      createAndSaveNotification({ type: 'join', userId, chatId });
+      socket.to(`${chatId}`).emit('chat', { message: notification, createdAt: new Date()})
     } else {
       socket.emit('checkKey', { status: false });
     }
@@ -145,49 +145,21 @@ var io = socket.listen(server);
   });
 
 // ONLINE MODE
+  socket.on('online', ({ userId }) => {  
+    userlist[socket.id] = userId;
 
-  function userOnline(socketId, userId) {
-    socketUserList[socketId] = userId;
-    userStatuslist[userId] = true;
-  }
-
-  function userOffline(socketId) {
-    userId = socketUserList[socketId];
-    if (userId) {
-      delete userStatuslist[userId];
-    }
-  }
-
-  socket.on('online', ({ userId }) => {
-    userOnline(socket.id, userId);
-  });
-
-  socket.on('offline', () => {
-    userOffline(socket.id);
+    UpdateUserList();
   });
 
   socket.on('disconnect', () => {
-    userOffline(socket.id);
+    delete userlist[socket.id];
+
+    UpdateUserList();
   });
-
-  socket.on('chatUserList', async ({ chatId }) => {
-    const chat = await Chat.findOne({ _id: chatId });
-    const participants = chat.participants;
-    const participantsWithStatus = participants.map(
-      participant => {
-        const isOnline = !!userStatuslist[participant.userId];
-        return {
-          userId: participant.userId,
-          userName: participant.userName,
-          userColour: participant.userColour,
-          isOnline: isOnline
-        };
-      }
-    );
-
-    socket.emit('chatUserList', participantsWithStatus);
-  });
-
+    
+  function UpdateUserList() {
+    io.sockets.emit('updateusers', userlist);
+  }
 
 // DISPLAY CHATLISTS
   socket.on('chatList', async ({ type, userId  }) => {
@@ -223,7 +195,6 @@ var io = socket.listen(server);
       createAndSaveNotification({ type: 'leave', userId, chatId })
 
       socket.emit('leaveChat', { status: true });
-      socket.leave(`${chat._id}`);
     }
   });
 
@@ -253,7 +224,7 @@ var io = socket.listen(server);
   socket.on('deleteParticipant', async({ chatId, userId }) =>  {
     await Chat.findOneAndUpdate({ _id: chatId }, {$pull: { participants: { userId: ObjectId(userId) } }});
 
-    io.to(`${chatId}`).emit('deleteParticipant', { status: true, deletedParticipantId: userId });
+    socket.emit('deleteParticipant', { status: true, deletedParticipantId: userId });
 
     createAndSaveNotification({ type: 'delete', userId, chatId });
   });
@@ -314,5 +285,4 @@ async function createAndSaveNotification({ type, userId, chatId, oldTitle, newTi
 
   notification.save();      
 
-  socket.to(`${chatId}`).emit('chat', { message: notification, createdAt: new Date()})
 };
