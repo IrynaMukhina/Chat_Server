@@ -138,11 +138,11 @@ var io = socket.listen(server);
 // CHAT FUNCTIONALITY
   socket.on('chat', ({ userMessage, chatId }) => {
     const message = new Message(userMessage);
-    const newMessage = {...userMessage, createdAt: new Date()};
+    const newMessage = { ...userMessage, createdAt: new Date() };
 
     message.save();
 
-    io.to(`${chatId}`).emit('chat', { message: newMessage});
+    io.to(`${chatId}`).emit('chat', { message: newMessage });
   });
 
 // ONLINE MODE
@@ -303,14 +303,17 @@ async function createAndSaveNotification({ type, userId, chatId, oldTitle, newTi
       by user ${modifyUser.userName}`;
   }
 
-  const notification = new Message({
+  const notificationBody = {
     chatId,
     user: modifyUser,
     content: notificationMessage,
     type
-  });
+  };
+  const notification = new Message(notificationBody);
 
-  notification.save();      
+  notification.save(); 
+  
+  const newMessage = { ...notificationBody, createdAt: new Date() };
 
-  socket.to(`${chatId}`).emit('chat', { message: notification, createdAt: new Date()})
+  socket.to(`${chatId}`).emit('chat', { message: newMessage});
 };
